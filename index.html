@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CMS Note Identification Game - Turbo Edition</title>
+    <title>CMS Note ID Game - Precision Ed.</title>
     <style>
         :root {
             --primary: #FF5252;
@@ -13,7 +13,7 @@
         }
 
         body {
-            font-family: 'Comic Sans MS', 'Segoe UI', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: var(--bg-gradient);
             display: flex;
             justify-content: center;
@@ -33,7 +33,6 @@
             border: 8px solid white;
         }
 
-        /* 頂部資訊欄 */
         .header {
             display: flex;
             justify-content: space-between;
@@ -60,17 +59,15 @@
             font-family: 'Courier New', monospace;
         }
 
-        /* 畫布區域 */
         canvas {
             width: 100%;
-            height: 240px;
+            height: 260px; /* 增加高度以容納更大的譜號 */
             background: #fff;
             border-radius: 15px;
             margin-bottom: 20px;
             box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
         }
 
-        /* 鋼琴區域 */
         #piano {
             display: flex;
             justify-content: center;
@@ -105,7 +102,6 @@
         .key:active { background: #ffe082; transform: translateY(5px); }
         .key.black:active { background: #000; }
 
-        /* 遊戲結束彈窗 */
         #overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -153,7 +149,7 @@
         <div class="timer-box" id="timer">01:00</div>
     </div>
 
-    <canvas id="staffCanvas" width="1000" height="240"></canvas>
+    <canvas id="staffCanvas" width="1000" height="260"></canvas>
     <div id="feedback-text"></div>
 
     <div id="piano"></div>
@@ -175,10 +171,10 @@
     let timeLeft = 60;
     let gameActive = false;
     let targetNote = "";
-    let noteColor = "#000";
+    let noteColor = "#000"; // 遊戲開始前，音符預設為黑色
     let timerId;
 
-    const s = 24; // 線距
+    const s = 24; 
     const centerY = canvas.height / 2; 
 
     const noteMap = {
@@ -194,7 +190,6 @@
     function drawStaff() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // 1. 畫五線譜
         ctx.strokeStyle = "#444";
         ctx.lineWidth = 2;
         for (let i = -2; i <= 2; i++) {
@@ -202,16 +197,19 @@
             ctx.beginPath(); ctx.moveTo(50, y); ctx.lineTo(950, y); ctx.stroke();
         }
 
-        // 2. 經典巨大的高音譜號
-        ctx.font = `${s * 8}px Arial`; 
+        // 修改 2: 根據附圖紅色高音譜號大跨度和位置，並精密對齊
+        ctx.font = `${s * 9}px Arial`; 
         ctx.fillStyle = "#000";
-        // 修正 Y 偏移，讓 G 螺旋對準下數第二線
-        ctx.fillText("𝄞", 65, centerY + s * 1.6); 
+        // 精密 Y 軸對齊。螺旋中心在第二線 $G_4$。這條線的 Y 是 `centerY + s`。
+        // 使用 `middle` 基線並精密微調。Arial 字體中，`s * 1.5` 左右的偏移量能使螺旋中心對齊第二線。
+        ctx.textBaseline = "middle"; 
+        ctx.fillText("𝄞", 70, centerY + s * 1.5); 
 
         if (targetNote) renderNote();
     }
 
     function renderNote() {
+        // 修改 1: 移除符桿，將所有音符改為全音符橢圓
         const steps = noteMap[targetNote];
         const y = centerY - (steps * (s / 2));
         const x = canvas.width / 2 + 50;
@@ -219,24 +217,12 @@
         ctx.fillStyle = noteColor;
         ctx.strokeStyle = noteColor;
 
-        // 符頭
+        // 全音符符頭橢圓
         ctx.beginPath();
-        ctx.ellipse(x, y, s * 0.65, s * 0.5, Math.PI / 8, 0, 2 * Math.PI);
+        ctx.ellipse(x, y, s * 0.7, s * 0.55, Math.PI / 8, 0, 2 * Math.PI);
         ctx.fill();
 
-        // 符桿
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        if (steps >= 0) { // B4以上符桿向下
-            ctx.moveTo(x - s * 0.6, y);
-            ctx.lineTo(x - s * 0.6, y + s * 3.5);
-        } else { // B4以下符桿向上
-            ctx.moveTo(x + s * 0.6, y);
-            ctx.lineTo(x + s * 0.6, y - s * 3.5);
-        }
-        ctx.stroke();
-
-        // 加線 (C4, A5, C6)
+        // 保留加線，只畫橫線，無符桿
         if (steps <= -6) { ctx.beginPath(); ctx.moveTo(x-25, centerY+s*3); ctx.lineTo(x+25, centerY+s*3); ctx.stroke(); }
         if (steps >= 6) { ctx.beginPath(); ctx.moveTo(x-25, centerY-s*3); ctx.lineTo(x+25, centerY-s*3); ctx.stroke(); }
         if (steps >= 8) { ctx.beginPath(); ctx.moveTo(x-25, centerY-s*4); ctx.lineTo(x+25, centerY-s*4); ctx.stroke(); }
@@ -254,13 +240,15 @@
     function handleInput(note) {
         if (!gameActive) return;
         if (note === targetNote) {
+            // 修改 3a: 在答對的分支中，確保顏色立即重置為黑色。
+            noteColor = "#000"; 
             score += 10;
             document.getElementById('score').innerText = score;
             showFeedback("CORRECT!", "#4CAF50");
-            noteColor = "#000";
-            next();
+            next(); // 生成下一個
         } else {
-            noteColor = "#FF5252"; // 變紅
+            // 答錯，變紅並重繪
+            noteColor = "#FF5252"; 
             showFeedback("ERROR!", "#FF5252");
             drawStaff();
         }
@@ -276,7 +264,9 @@
     function next() {
         const keys = Object.keys(noteMap);
         targetNote = keys[Math.floor(Math.random() * keys.length)];
-        drawStaff();
+        // 修改 3b: 生成新音符前，再次確保音符顏色重置為黑色。這可以防止上一個答錯的紅色影響下一個。
+        noteColor = "#000"; 
+        drawStaff(); 
     }
 
     function startGame() {
