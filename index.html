@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CMS Note ID Game - Precision Ed.</title>
+    <title>CMS Note ID Game - Precision Ed. V6</title>
     <style>
         :root {
             --primary: #FF5252;
@@ -61,7 +61,7 @@
 
         canvas {
             width: 100%;
-            height: 260px; /* 增加高度以容納更大的譜號 */
+            height: 260px;
             background: #fff;
             border-radius: 15px;
             margin-bottom: 20px;
@@ -171,7 +171,7 @@
     let timeLeft = 60;
     let gameActive = false;
     let targetNote = "";
-    let noteColor = "#000"; // 遊戲開始前，音符預設為黑色
+    let noteColor = "#000"; 
     let timerId;
 
     const s = 24; 
@@ -197,32 +197,36 @@
             ctx.beginPath(); ctx.moveTo(50, y); ctx.lineTo(950, y); ctx.stroke();
         }
 
-        // 修改 2: 根據附圖紅色高音譜號大跨度和位置，並精密對齊
         ctx.font = `${s * 9}px Arial`; 
         ctx.fillStyle = "#000";
-        // 精密 Y 軸對齊。螺旋中心在第二線 $G_4$。這條線的 Y 是 `centerY + s`。
-        // 使用 `middle` 基線並精密微調。Arial 字體中，`s * 1.5` 左右的偏移量能使螺旋中心對齊第二線。
         ctx.textBaseline = "middle"; 
-        ctx.fillText("𝄞", 70, centerY + s * 1.5); 
+        
+        // 修正 1: 高音譜號位置向上移動 24px (向上即為 $Y$ 軸減去 24)。
+        // 原本座標是 `centerY + s * 1.5`，現在變為 `centerY + s * 1.5 - 24`。
+        // 因為 $s=24$，簡化為 `centerY + s * 0.5`。
+        ctx.fillText("𝄞", 70, centerY + s * 0.5); 
 
         if (targetNote) renderNote();
     }
 
     function renderNote() {
-        // 修改 1: 移除符桿，將所有音符改為全音符橢圓
         const steps = noteMap[targetNote];
         const y = centerY - (steps * (s / 2));
         const x = canvas.width / 2 + 50;
 
-        ctx.fillStyle = noteColor;
+        // 統一音符輪廓顏色和寬度
         ctx.strokeStyle = noteColor;
+        ctx.lineWidth = s * 0.15; // 設定空心橢圓輪廓寬度
 
-        // 全音符符頭橢圓
+        // 修正 2: 全音符空白且圈圈水平反轉
+        // 原本旋轉是 `Math.PI / 8` (約 22.5度,斜率 \)。
+        // 現在改為 `-Math.PI / 8` (約 -22.5度,斜率 /, 水平反轉斜率方向)。
         ctx.beginPath();
-        ctx.ellipse(x, y, s * 0.7, s * 0.55, Math.PI / 8, 0, 2 * Math.PI);
-        ctx.fill();
+        ctx.ellipse(x, y, s * 0.7, s * 0.55, -Math.PI / 8, 0, 2 * Math.PI);
+        // 使用 ctx.stroke() 來畫空白（空心）輪廓，移除原本的 ctx.fill()。
+        ctx.stroke();
 
-        // 保留加線，只畫橫線，無符桿
+        // 畫加線，只畫橫線，無符桿
         if (steps <= -6) { ctx.beginPath(); ctx.moveTo(x-25, centerY+s*3); ctx.lineTo(x+25, centerY+s*3); ctx.stroke(); }
         if (steps >= 6) { ctx.beginPath(); ctx.moveTo(x-25, centerY-s*3); ctx.lineTo(x+25, centerY-s*3); ctx.stroke(); }
         if (steps >= 8) { ctx.beginPath(); ctx.moveTo(x-25, centerY-s*4); ctx.lineTo(x+25, centerY-s*4); ctx.stroke(); }
@@ -240,14 +244,12 @@
     function handleInput(note) {
         if (!gameActive) return;
         if (note === targetNote) {
-            // 修改 3a: 在答對的分支中，確保顏色立即重置為黑色。
             noteColor = "#000"; 
             score += 10;
             document.getElementById('score').innerText = score;
             showFeedback("CORRECT!", "#4CAF50");
             next(); // 生成下一個
         } else {
-            // 答錯，變紅並重繪
             noteColor = "#FF5252"; 
             showFeedback("ERROR!", "#FF5252");
             drawStaff();
@@ -264,7 +266,6 @@
     function next() {
         const keys = Object.keys(noteMap);
         targetNote = keys[Math.floor(Math.random() * keys.length)];
-        // 修改 3b: 生成新音符前，再次確保音符顏色重置為黑色。這可以防止上一個答錯的紅色影響下一個。
         noteColor = "#000"; 
         drawStaff(); 
     }
