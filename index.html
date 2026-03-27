@@ -278,18 +278,17 @@
             ctx.beginPath(); ctx.moveTo(50, y); ctx.lineTo(950, y); ctx.stroke();
         }
 
-        // --- 高音譜號修正 (V9) ---
+        // --- 高音譜號修正 (V10) ---
         ctx.save();
         ctx.fillStyle = "#5B5B5B";
         
-        // 1. 放大 25%：由 8.4375 乘以 1.25 = 10.546875
         ctx.font = `${s * 10.546875}px Arial`;
         ctx.textBaseline = "middle";
         
-        // 2. 移高 12px：原 V8 坐標是 centerY + s * 0.3。
-        // 移高 12px 代表 Y 軸減去 12。因為 s=24，12px 剛好是 0.5s。
-        // 新坐標 = (centerY + s * 0.3) - s * 0.5 = centerY - s * 0.2
-        ctx.translate(80, centerY - s * 0.2); 
+        // 移高 6px：原 V9 坐標是 centerY - s * 0.2。
+        // 移高 6px 代表 Y 軸減去 6。因為 s=24，6px 剛好是 0.25s。
+        // 新坐標 = (centerY - s * 0.2) - s * 0.25 = centerY - s * 0.45
+        ctx.translate(80, centerY - s * 0.45); 
         ctx.scale(0.85, 1); // 保持纖細形態
         ctx.fillText("𝄞", 0, 0); 
         ctx.restore();
